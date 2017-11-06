@@ -1,59 +1,65 @@
 <?php
-
 ini_set('display_errors', 'On');
 error_reporting(E_ALL);
+class dbCon{
 
-echo "<table style='border: solid 1px black;'>";
+    private static $dsn = 'mysql:host=sql2.njit.edu;dbname=kn262';
+    private static $user = "kn262";
+    private static $password = "NvlYN5s5";
+    protected static $db;
 
-
-class TableRows extends RecursiveIteratorIterator { 
-    function __construct($it) { 
-        parent::__construct($it, self::LEAVES_ONLY); 
-    }
-
-    function current() {
-        return "<td style='width:150px;border:1px solid black;'>" . parent::current(). "</td>";
-    }
-
-    function beginChildren() { 
-        echo "<tr>"; 
-    } 
-
-    function endChildren() { 
-        echo "</tr>" . "\n";
-    } 
-} 
-
-
-$servername = "sql2.njit.edu";
-$username = "kn262";
-$password = "NvlYN5s5";
-
-try {
-    $conn = new PDO("mysql:host=$servername;dbname=kn262", $username, $password);
-        // set the PDO error mode to exception
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "Connected successfully <br>";
-    
-    $stmt = $conn->prepare("select * from accounts where id <6;");
-    $stmt -> execute();
-    $result = $stmt->setFetchMode(PDO::FETCH_ASSOC); 
-      
-      $rowcount = $stmt->fetchAll();
-      echo "Rowcount is ".count($rowcount)."<br>";
-
-      foreach(new TableRows(new RecursiveArrayIterator($rowcount)) as $k=>$v) 
-      { 
-        echo $v;
-
-      }
-    }  
-    catch(PDOException $e)
+    private function __construct()
     {
-    echo "Connection failed: " . $e->getMessage(). "<br>";
-     }
+        try{
+            self::$db = new PDO( self::$dsn,
+                self::$user,
+                self::$password);
+            self::$db->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
+            echo "Connected successfully <br>";
+        }
+        catch (PDOException $e){
+            echo "Connection Error: " . $e->getMessage();
+        }
 
-$conn = null;
-echo "</table>";
+    }
+    public static function getConnection() {
 
-?>
+        //Guarantees single instance, if no connection object exists then create one.
+        if (!self::$db) {
+            //new connection object.
+            new dbCon();
+        }
+
+        //return connection.
+        return self::$db;
+    }
+}
+
+
+
+class DataFetch{
+    public static function getTableData() {
+        $db = dbCon::getConnection();
+        $query = 'SELECT * FROM accounts WHERE id <6';
+        $stmt = $db->prepare($query);
+        $stmt -> execute();
+        $result = $stmt->setFetchMode(PDO::FETCH_ASSOC);
+
+        $rowcount = $stmt->fetchAll();
+        echo "Rowcount is ".count($rowcount)."<br>";
+
+        echo "<table style='border: solid 1px black;'>";
+        foreach ($rowcount as $record){
+            echo "<tr>";
+            foreach( $record as $col){
+                echo "<td style='width:150px;border:1px solid black;'>".$col."</td>";
+            }
+            echo "</tr>";
+        }
+        echo "</table>";
+    }
+
+}
+
+$program = DataFetch::getTableData();
+
